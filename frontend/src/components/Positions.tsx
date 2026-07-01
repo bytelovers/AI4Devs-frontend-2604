@@ -1,7 +1,9 @@
 import React from 'react';
 import { Card, Container, Row, Col, Form, Button } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 type Position = {
+    id: number;
     title: string;
     manager: string;
     deadline: string;
@@ -9,9 +11,9 @@ type Position = {
 };
 
 const mockPositions: Position[] = [
-    { title: 'Senior Backend Engineer', manager: 'John Doe', deadline: '2024-12-31', status: 'Abierto' },
-    { title: 'Junior Android Engineer', manager: 'Jane Smith', deadline: '2024-11-15', status: 'Contratado' },
-    { title: 'Product Manager', manager: 'Alex Jones', deadline: '2024-07-31', status: 'Borrador' }
+    { id: 1, title: 'Senior Backend Engineer', manager: 'John Doe', deadline: '2024-12-31', status: 'Abierto' },
+    { id: 2, title: 'Junior Android Engineer', manager: 'Jane Smith', deadline: '2024-11-15', status: 'Contratado' },
+    { id: 3, title: 'Product Manager', manager: 'Alex Jones', deadline: '2024-07-31', status: 'Borrador' }
 ];
 
 const Positions: React.FC = () => {
@@ -44,9 +46,9 @@ const Positions: React.FC = () => {
                 </Col>
             </Row>
             <Row>
-                {mockPositions.map((position, index) => (
-                    <Col md={4} key={index} className="mb-4">
-                        <Card className="shadow-sm">
+                {mockPositions.map((position) => (
+                    <Col md={4} key={position.id} className="mb-4">
+                        <Card className="shadow-sm h-100">
                             <Card.Body>
                                 <Card.Title>{position.title}</Card.Title>
                                 <Card.Text>
@@ -57,8 +59,10 @@ const Positions: React.FC = () => {
                                     {position.status}
                                 </span>
                                 <div className="d-flex justify-content-between mt-3">
-                                    <Button variant="primary">Ver proceso</Button>
-                                    <Button variant="secondary">Editar</Button>
+                                    <Link to={`/positions/${position.id}`} className="text-decoration-none">
+                                        <Button variant="primary" className="w-100">Ver proceso</Button>
+                                    </Link>
+                                    <Button variant="secondary" className="w-100 mt-2">Editar</Button>
                                 </div>
                             </Card.Body>
                         </Card>
