@@ -146,8 +146,8 @@ const Positions: React.FC = () => {
                                         <strong>Manager:</strong> {position.manager}<br />
                                         <strong>Fecha límite:</strong> {formatDate(position.deadline)}
                                     </Card.Text>
-                                    <span className={`badge ${statusBadgeClass[position.status]} text-white`}>
-                                        {statusLabel[position.status]}
+                                    <span className={`badge ${statusBadgeClass[position.status] || 'bg-secondary'} ${position.status === 'open' ? 'text-dark' : 'text-white'}`}>
+                                        {statusLabel[position.status] || position.status}
                                     </span>
                                     <div className="d-grid gap-2 mt-3">
                                         <Link to={`/positions/${position.id}`} className="text-decoration-none">
