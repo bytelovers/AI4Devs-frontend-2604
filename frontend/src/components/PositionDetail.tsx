@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Row, Col, Card, CardBody, CardTitle, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, GripVertical } from 'react-bootstrap-icons';
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage, InterviewStep, Candidate, InterviewFlowData } from '../services/positionService';
+import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage, InterviewStep, Candidate, InterviewFlowData, statusLabel, statusBadgeClass, formatDate } from '../services/positionService';
 import './PositionDetail.css';
 
 interface KanbanColumnProps {
@@ -75,16 +75,17 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
             style={style}
             {...listeners}
             {...attributes}
+            aria-label={`Candidato ${candidate.fullName}. Score: ${(candidate.averageScore ?? 0).toFixed(1)}`}
         >
             <Card className="shadow-sm h-100" style={{ borderRadius: '8px' }}>
                 <CardBody className="p-3">
                     <div className="d-flex justify-content-between align-items-start mb-2">
-                        <GripVertical className="text-muted drag-handle" style={{ cursor: 'grab' }} aria-label="Arrastrar candidato" />
+                        <GripVertical className="text-muted drag-handle" style={{ cursor: 'grab' }} aria-hidden="true" />
                     </div>
                     <h6 className="mb-1 candidate-name">{candidate.fullName}</h6>
                     <div className="d-flex align-items-center gap-2">
                         <Badge bg="primary" className="score-badge">
-                            Score: {candidate.averageScore.toFixed(1)}
+                            Score: {(candidate.averageScore ?? 0).toFixed(1)}
                         </Badge>
                     </div>
                 </CardBody>
@@ -104,6 +105,36 @@ const PositionDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeStepId, setActiveStepId] = useState<number | null>(null);
+    const [unmatchedCount, setUnmatchedCount] = useState(0);
+    const unmatchedLoggedRef = useRef(0);
+    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Detect candidates whose currentInterviewStep doesn't match any defined step
+    useEffect(() => {
+        if (!interviewFlow?.interviewFlow?.interviewSteps || candidates.length === 0) {
+            setUnmatchedCount(0);
+            return;
+        }
+        const stepNames = new Set(interviewFlow.interviewFlow.interviewSteps.map(s => s.name.trim().toLowerCase()));
+        const unmatched = candidates.filter(c => !stepNames.has(c.currentInterviewStep?.trim().toLowerCase() ?? ''));
+        setUnmatchedCount(unmatched.length);
+        if (unmatched.length > 0 && unmatched.length !== unmatchedLoggedRef.current) {
+            console.warn(
+                `[PositionDetail] ${unmatched.length} candidato(s) sin fase asignada:`,
+                unmatched.map(c => ({ id: c.id, applicationId: c.applicationId, fullName: c.fullName, step: c.currentInterviewStep }))
+            );
+            unmatchedLoggedRef.current = unmatched.length;
+        } else if (unmatched.length === 0) {
+            unmatchedLoggedRef.current = 0;
+        }
+    }, [interviewFlow, candidates]);
+
+    // Cleanup error timer on unmount
+    useEffect(() => {
+        return () => {
+            if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+        };
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -112,7 +143,8 @@ const PositionDetail: React.FC = () => {
                 delay: 250,
                 tolerance: 5,
             },
-        })
+        }),
+        useSensor(KeyboardSensor)
     );
 
     const fetchData = useCallback(async () => {
@@ -165,7 +197,7 @@ const PositionDetail: React.FC = () => {
 
         // Check if the candidate is already in this step
         const currentStepId = interviewFlow?.interviewFlow.interviewSteps.find(
-            s => s.name === candidate.currentInterviewStep
+            s => s.name.trim().toLowerCase() === (candidate.currentInterviewStep?.trim().toLowerCase() ?? '')
         )?.id;
         if (currentStepId === newStepId) return;
 
@@ -181,7 +213,8 @@ const PositionDetail: React.FC = () => {
             ));
         } catch (err: any) {
             setError(err.message || 'Error al mover el candidato');
-            setTimeout(() => setError(null), 5000);
+            if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+            errorTimerRef.current = setTimeout(() => { setError(null); errorTimerRef.current = null; }, 5000);
         }
     };
 
@@ -198,7 +231,8 @@ const PositionDetail: React.FC = () => {
     const getCandidatesForStep = (stepId: number) => {
         if (!interviewFlow) return [];
         const stepName = interviewFlow.interviewFlow.interviewSteps.find(s => s.id === stepId)?.name;
-        return candidates.filter(c => c.currentInterviewStep === stepName);
+        const normalizedStepName = stepName?.trim().toLowerCase() ?? '';
+        return candidates.filter(c => (c.currentInterviewStep?.trim().toLowerCase() ?? '') === normalizedStepName);
     };
 
     // Loading state
@@ -261,6 +295,15 @@ const PositionDetail: React.FC = () => {
                     <p className="text-muted small mb-0">
                         {interviewFlow.interviewFlow.interviewSteps.length} fases en el proceso
                     </p>
+                    <p className="text-muted small mb-0 mt-1">
+                        <span className="me-3"><strong>Manager:</strong> {interviewFlow.manager || 'Sin asignar'}</span>
+                        {interviewFlow.deadline && <span className="me-3"><strong>Fecha límite:</strong> {formatDate(interviewFlow.deadline)}</span>}
+                        {interviewFlow.status && (
+                            <span className={`badge ${statusBadgeClass[interviewFlow.status] || 'bg-secondary'} ${interviewFlow.status === 'open' ? 'text-dark' : 'text-white'}`}>
+                                {statusLabel[interviewFlow.status] || interviewFlow.status}
+                            </span>
+                        )}
+                    </p>
                 </Col>
             </Row>
 
@@ -269,6 +312,16 @@ const PositionDetail: React.FC = () => {
                     <Col>
                         <Alert variant="danger" dismissible onClose={() => setError(null)}>
                             {error}
+                        </Alert>
+                    </Col>
+                </Row>
+            )}
+
+            {unmatchedCount > 0 && (
+                <Row className="mb-3">
+                    <Col>
+                        <Alert variant="warning">
+                            {unmatchedCount} candidato{unmatchedCount !== 1 ? 's' : ''} sin fase asignada — no se muestra{unmatchedCount !== 1 ? 'n' : ''} en el tablero hasta que se le asigne una fase.
                         </Alert>
                     </Col>
                 </Row>
