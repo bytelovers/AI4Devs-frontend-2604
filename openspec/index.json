@@ -1,24 +1,30 @@
 {
-  "version": "1.0.0",
-  "generated": "2025-07-02T00:00:00.000Z",
+  "version": "1.1.0",
+  "generated": "2026-07-03T00:00:00.000Z",
   "project": "AI4Devs Frontend",
   "repository": "https://github.com/bytelovers/AI4Devs-frontend-2604",
   "changes": [
     {
       "id": "position-kanban-board",
       "title": "Kanban Board for Candidate Management per Position",
-      "description": "Kanban board interface at /positions/:id for visualizing and managing candidates across interview phases with drag & drop.",
+      "description": "Kanban board interface at /positions/:id for visualizing and managing candidates across interview phases with drag & drop. Includes positions list page with filters and API-driven data.",
       "status": "archived",
       "priority": "high",
-      "labels": ["frontend", "kanban", "drag-drop", "positions", "candidates"],
+      "labels": ["frontend", "backend", "kanban", "drag-drop", "positions", "candidates"],
       "author": "AI4Devs Team",
       "created": "2025-07-02",
-      "completed": "2025-07-02",
+      "completed": "2026-07-03",
       "branch": "feature/frontend-ADLC",
       "pr": "https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC",
       "commits": [
-        "dfe3608",
-        "f49af7f"
+        "dfe3608 feat: implement position kanban board with drag & drop",
+        "ba35eeb feat(api): add shared position types, API service, and formatDate utility",
+        "29e7172 feat(positions): replace mock positions with API-driven list with filters and loading states",
+        "e1dfc82 feat(position-detail): implement Kanban board with DnD, data validation, and error recovery",
+        "f82bc39 chore: add pnpm workspace configuration and lock files",
+        "7f9455c chore: update .gitignore for tooling directories",
+        "730402b docs: add session history and execution log to prompts-iniciales.md",
+        "0ea7055 feat(api): implement positions list and align interview flow response with frontend contract"
       ],
       "specifications": {
         "proposal": "changes/position-kanban-board/proposal.md",
@@ -32,12 +38,16 @@
           "frontend/src/services/positionService.ts",
           "frontend/src/components/PositionDetail.tsx",
           "frontend/src/components/PositionDetail.css",
+          "backend/src/routes/positionRoutes.ts",
           "prompts-iniciales.md"
         ],
         "filesModified": [
           "frontend/src/components/Positions.tsx",
           "frontend/src/App.js",
-          "frontend/package.json"
+          "frontend/package.json",
+          "backend/src/application/services/positionService.ts",
+          "backend/src/presentation/controllers/positionController.ts",
+          "backend/src/index.ts"
         ],
         "documentationCreated": [
           "prompts-ADLC.md",
@@ -49,18 +59,20 @@
         ]
       },
       "metrics": {
-        "developmentTimeHours": 4.9,
-        "linesOfCodeNew": 473,
+        "developmentTimeHours": 6.5,
+        "linesOfCodeNew": 580,
         "bundleIncreaseKbGzipped": 9.5,
         "automatedTestCoverage": 0,
         "accessibilityStandard": "WCAG 2.1 AA"
       },
       "apiEndpoints": [
+        "GET /positions",
         "GET /position/:id/interviewflow",
         "GET /position/:id/candidates",
         "PUT /candidates/:id"
       ],
       "routesAdded": [
+        "/positions",
         "/positions/:id"
       ],
       "dependenciesAdded": [
@@ -75,7 +87,11 @@
           "Responsive layout (mobile/tablet/desktop)",
           "Error handling (backend down)",
           "API verification via curl",
-          "Keyboard navigation"
+          "Keyboard navigation",
+          "Positions list filtering (search, status, manager, date)",
+          "Data consistency between list and detail views",
+          "AbortController cleanup on unmount",
+          "Partial data loading (settled promises)"
         ]
       }
     }
