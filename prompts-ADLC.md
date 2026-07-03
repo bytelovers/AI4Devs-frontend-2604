@@ -324,4 +324,67 @@ curl -X PUT http://localhost:3010/candidates/1 \
 
 ---
 
-*Documento generado como parte del proceso ADLC - Julio 2025*
+## Fase 8: CODE REVIEW — Hallazgos y Correcciones (Julio 2026)
+
+### Resumen de Auditoría
+
+Se revisaron 5 hallazgos de código contra el estado actual de la rama `feature/frontend-ADLC`:
+
+| # | Hallazgo | Archivo | ¿Válido? | Acción |
+|---|----------|---------|----------|--------|
+| 1 | Precedencia de operadores (`+` > `\|\|`) en catch blocks | `positionService.ts` | ✅ Sí | Corregido — agregados paréntesis en los 4 bloques |
+| 2 | Falta KeyboardSensor para accesibilidad | `PositionDetail.tsx` | ❌ Skipped | Requiere coordinate getter custom para layout Kanban 2D, no es un bug sino mejora |
+| 3 | `NaN` en ruta no numérica deja componente en loading infinito | `PositionDetail.tsx` | ✅ Sí | Corregido — validación explícita con `isNaN()` + manejo de error |
+| 4 | Tipos locales duplicados vs positionService | `PositionDetail.tsx` | ✅ Sí | Corregido — reemplazados por imports compartidos |
+| 5 | Router montado bajo `/position` y `/positions` | `backend/src/index.ts` | ❌ Skipped | Express resuelve correctamente ambas rutas; no hay conflicto real |
+
+### Detalle de Correcciones
+
+#### Hallazgo 1 — Precedencia de operadores (commit `93209d8`)
+```typescript
+// Antes (bug): 'Error: ' + undefined || error.message → 'Error: undefined'
+throw new Error('Error: ' + error.response?.data?.message || error.message);
+
+// Después: 'Error: ' + (undefined || error.message) → 'Error: ' + error.message
+throw new Error('Error: ' + (error.response?.data?.message || error.message));
+```
+Afectaba a `getPositions`, `getInterviewFlowByPosition`, `getCandidatesByPosition` y `updateCandidateStage`.
+
+#### Hallazgo 3 — Validación de ruta no numérica (commit `93209d8`)
+```typescript
+// Antes: parseInt('abc') → NaN, NaN es falsy → fetchData nunca se llama → loading infinito
+const positionId = parseInt(id || '0', 10);
+
+// Después: validación explícita con isNaN + manejo de error
+const parsedId = parseInt(id || '', 10);
+const positionId = !isNaN(parsedId) && parsedId > 0 ? parsedId : 0;
+
+// useEffect setea error si positionId es 0
+if (!positionId) {
+    setError('ID de posición inválido');
+    setLoading(false);
+    return;
+}
+```
+
+#### Hallazgo 4 — Eliminación de tipos duplicados (commit `93209d8`)
+- `InterviewStep`, `Candidate` e `InterviewFlowData` se importan desde `positionService.ts` en lugar de declararse localmente.
+- `InterviewFlowData` ahora usa la forma completa del servicio (incluye `id`, `manager`, `deadline`, `status`).
+
+### Hallazgos Omitidos (con razón)
+
+| # | Razón |
+|---|-------|
+| 2 | `KeyboardSensor` requiere un `KeyboardCoordinateGetter` personalizado para navegar entre columnas en grid 2D. No hay una implementación disponible en `@dnd-kit` para layouts no lineales. Es una mejora de accesibilidad válida pero no un bug. |
+| 5 | Express monta el mismo router bajo ambos prefijos. `GET /positions` → `router.get('/')` (listar), `GET /position/1/candidates` → `router.get('/:id/candidates')`. Cada petición resuelve la ruta correcta porque Express hace match por método+path, no por prefijo. Separar routers añadiría complejidad sin beneficio. |
+
+### Commits Relacionados
+
+```bash
+93209d8 fix: resolve operator-precedence bug in catch blocks, validate route param NaN, deduplicate types
+e242030 fix(position-detail): restore simple Kanban UI with functional DnD and align types with backend
+```
+
+---
+
+*Documento generado como parte del proceso ADLC - Julio 2025/2026*

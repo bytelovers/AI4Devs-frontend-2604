@@ -60,7 +60,7 @@ export const getPositions = async (): Promise<PositionListItem[]> => {
         const response = await axios.get(`${API_BASE_URL}/positions`);
         return response.data;
     } catch (error: any) {
-        throw new Error('Error al obtener posiciones: ' + error.response?.data?.message || error.message, { cause: error });
+        throw new Error('Error al obtener posiciones: ' + (error.response?.data?.message || error.message), { cause: error });
     }
 };
 
@@ -69,7 +69,7 @@ export const getInterviewFlowByPosition = async (positionId: number): Promise<In
         const response = await axios.get(`${API_BASE_URL}/position/${positionId}/interviewflow`);
         return response.data.interviewFlow;
     } catch (error: any) {
-        throw new Error('Error al obtener el flujo de entrevistas: ' + error.response?.data?.message || error.message, { cause: error });
+        throw new Error('Error al obtener el flujo de entrevistas: ' + (error.response?.data?.message || error.message), { cause: error });
     }
 };
 
@@ -78,7 +78,7 @@ export const getCandidatesByPosition = async (positionId: number): Promise<Candi
         const response = await axios.get(`${API_BASE_URL}/position/${positionId}/candidates`);
         return response.data;
     } catch (error: any) {
-        throw new Error('Error al obtener candidatos: ' + error.response?.data?.message || error.message, { cause: error });
+        throw new Error('Error al obtener candidatos: ' + (error.response?.data?.message || error.message), { cause: error });
     }
 };
 
@@ -90,7 +90,7 @@ export const updateCandidateStage = async (candidateId: number, applicationId: n
         });
         return response.data;
     } catch (error: any) {
-        throw new Error('Error al actualizar etapa: ' + error.response?.data?.message || error.message, { cause: error });
+        throw new Error('Error al actualizar etapa: ' + (error.response?.data?.message || error.message), { cause: error });
     }
 };
 

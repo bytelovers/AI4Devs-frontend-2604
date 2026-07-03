@@ -4,33 +4,8 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, GripVertical } from 'react-bootstrap-icons';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage } from '../services/positionService';
+import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage, InterviewStep, Candidate, InterviewFlowData } from '../services/positionService';
 import './PositionDetail.css';
-
-interface InterviewStep {
-    id: number;
-    interviewFlowId: number;
-    interviewTypeId: number;
-    name: string;
-    orderIndex: number;
-}
-
-interface Candidate {
-    fullName: string;
-    currentInterviewStep: string;
-    averageScore: number;
-    id: number;
-    applicationId: number;
-}
-
-interface InterviewFlowData {
-    title: string;
-    interviewFlow: {
-        id: number;
-        description: string;
-        interviewSteps: InterviewStep[];
-    };
-}
 
 interface KanbanColumnProps {
     step: InterviewStep;
@@ -121,7 +96,8 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
 const PositionDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const positionId = parseInt(id || '0', 10);
+    const parsedId = parseInt(id || '', 10);
+    const positionId = !isNaN(parsedId) && parsedId > 0 ? parsedId : 0;
 
     const [interviewFlow, setInterviewFlow] = useState<InterviewFlowData | null>(null);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -158,9 +134,12 @@ const PositionDetail: React.FC = () => {
     }, [positionId]);
 
     useEffect(() => {
-        if (positionId) {
-            fetchData();
+        if (!positionId) {
+            setError('ID de posición inválido');
+            setLoading(false);
+            return;
         }
+        fetchData();
     }, [positionId, fetchData]);
 
     const handleDragStart = () => {
