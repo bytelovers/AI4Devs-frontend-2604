@@ -43,8 +43,11 @@ app.use('/candidates', candidateRoutes);
 // Route for file uploads
 app.post('/upload', uploadFile);
 
-// Route to get candidates by position
+// Route to get candidates by position (singular)
 app.use('/position', positionRoutes);
+
+// Route to get all positions (plural) - for the Positions list page
+app.use('/positions', positionRoutes);
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);

@@ -33,10 +33,41 @@ export const getCandidatesByPositionService = async (positionId: number) => {
     }
 };
 
+export const getAllPositionsService = async () => {
+    const positions = await prisma.position.findMany({
+        include: {
+            company: {
+                include: {
+                    employees: true
+                }
+            }
+        }
+    });
+
+    return positions.map(pos => {
+        // Find a manager from company employees (first employee with role containing 'manager' or first employee)
+        const manager = pos.company.employees.find(e => e.role.toLowerCase().includes('manager')) 
+            || pos.company.employees[0];
+        
+        return {
+            id: pos.id,
+            title: pos.title,
+            manager: manager ? manager.name : 'Sin asignar',
+            deadline: pos.applicationDeadline ? pos.applicationDeadline.toISOString().split('T')[0] : '',
+            status: pos.status.toLowerCase() // Normalize to lowercase for frontend consistency
+        };
+    });
+};
+
 export const getInterviewFlowByPositionService = async (positionId: number) => {
     const positionWithInterviewFlow = await prisma.position.findUnique({
         where: { id: positionId },
         include: {
+            company: {
+                include: {
+                    employees: true
+                }
+            },
             interviewFlow: {
                 include: {
                     interviewSteps: true
@@ -49,9 +80,17 @@ export const getInterviewFlowByPositionService = async (positionId: number) => {
         throw new Error('Position not found');
     }
 
-    // Formatear la respuesta para incluir el nombre de la posición y el flujo de entrevistas
+    // Find manager from company employees
+    const manager = positionWithInterviewFlow.company.employees.find(e => e.role.toLowerCase().includes('manager')) 
+        || positionWithInterviewFlow.company.employees[0];
+
+    // Return format matching frontend's InterviewFlowData interface
     return {
-        positionName: positionWithInterviewFlow.title,
+        id: positionWithInterviewFlow.id,
+        title: positionWithInterviewFlow.title,
+        manager: manager ? manager.name : 'Sin asignar',
+        deadline: positionWithInterviewFlow.applicationDeadline ? positionWithInterviewFlow.applicationDeadline.toISOString().split('T')[0] : '',
+        status: positionWithInterviewFlow.status.toLowerCase(),
         interviewFlow: {
             id: positionWithInterviewFlow.interviewFlow.id,
             description: positionWithInterviewFlow.interviewFlow.description,
