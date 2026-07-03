@@ -36,11 +36,10 @@ export interface InterviewStep {
 
 export interface Candidate {
     fullName: string;
-    currentInterviewStepId: number;
+    currentInterviewStep: string;
     averageScore: number;
-    candidateId: number;
+    id: number;
     applicationId: number;
-    positionId: number;
 }
 
 export interface InterviewFlowData {
@@ -83,12 +82,11 @@ export const getCandidatesByPosition = async (positionId: number): Promise<Candi
     }
 };
 
-export const updateCandidateStage = async (candidateId: number, applicationId: number, newInterviewStepId: number, positionId: number) => {
+export const updateCandidateStage = async (candidateId: number, applicationId: number, newInterviewStepId: number) => {
     try {
         const response = await axios.put(`${API_BASE_URL}/candidates/${candidateId}`, {
             applicationId,
-            currentInterviewStep: newInterviewStepId,
-            positionId
+            currentInterviewStep: newInterviewStepId
         });
         return response.data;
     } catch (error: any) {

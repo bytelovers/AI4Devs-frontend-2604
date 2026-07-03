@@ -1,12 +1,36 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, CardBody, CardTitle, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, GripVertical } from 'react-bootstrap-icons';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage, InterviewFlowData, Candidate, InterviewStep, statusLabel, statusBadgeClass, formatDate } from '../services/positionService';
+import { getInterviewFlowByPosition, getCandidatesByPosition, updateCandidateStage } from '../services/positionService';
 import './PositionDetail.css';
+
+interface InterviewStep {
+    id: number;
+    interviewFlowId: number;
+    interviewTypeId: number;
+    name: string;
+    orderIndex: number;
+}
+
+interface Candidate {
+    fullName: string;
+    currentInterviewStep: string;
+    averageScore: number;
+    id: number;
+    applicationId: number;
+}
+
+interface InterviewFlowData {
+    title: string;
+    interviewFlow: {
+        id: number;
+        description: string;
+        interviewSteps: InterviewStep[];
+    };
+}
 
 interface KanbanColumnProps {
     step: InterviewStep;
@@ -14,238 +38,188 @@ interface KanbanColumnProps {
     isDraggingOver: boolean;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ step, candidates, isDraggingOver }) => (
-    <Col key={step.id} xs={12} sm={6} lg={4} xl={3} className="kanban-column">
-        <Card className={`h-100 kanban-card ${isDraggingOver ? 'dragging-over' : ''}`}>
-            <CardBody className="p-3">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <CardTitle className="h6 mb-0 text-muted text-uppercase small">
-                        {step.name}
-                    </CardTitle>
-                    <Badge bg="secondary">{candidates.length}</Badge>
-                </div>
-                <div
-                    id={`step-${step.id}`}
-                    className="kanban-drop-zone min-vh-50"
-                    style={{ minHeight: '300px' }}
-                >
-                    {candidates.length === 0 && (
-                        <div className="text-center text-muted py-4 small">
-                            Arrastra candidatos aquí
-                        </div>
-                    )}
-                    {candidates.map((candidate) => (
-                        <CandidateCard
-                            key={candidate.applicationId}
-                            candidate={candidate}
-                        />
-                    ))}
-                </div>
-            </CardBody>
-        </Card>
-    </Col>
-);
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ step, candidates, isDraggingOver }) => {
+    const { setNodeRef } = useDroppable({ id: `step-${step.id}` });
+
+    return (
+        <Col key={step.id} xs={12} sm={6} lg={4} xl={3} className="kanban-column">
+            <Card className={`h-100 kanban-card ${isDraggingOver ? 'dragging-over' : ''}`}>
+                <CardBody className="p-3">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <CardTitle className="h6 mb-0 text-muted text-uppercase small">
+                            {step.name}
+                        </CardTitle>
+                        <Badge bg="secondary">{candidates.length}</Badge>
+                    </div>
+                    <div
+                        ref={setNodeRef}
+                        className="kanban-drop-zone"
+                        style={{ minHeight: '300px' }}
+                    >
+                        {candidates.length === 0 && (
+                            <div className="text-center text-muted py-4 small">
+                                Arrastra candidatos aquí
+                            </div>
+                        )}
+                        {candidates.map((candidate) => (
+                            <CandidateCard
+                                key={candidate.applicationId}
+                                candidate={candidate}
+                            />
+                        ))}
+                    </div>
+                </CardBody>
+            </Card>
+        </Col>
+    );
+};
 
 interface CandidateCardProps {
     candidate: Candidate;
 }
 
-const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => (
-    <div
-        id={`candidate-${candidate.applicationId}`}
-        className="kanban-candidate-card mb-2"
-        style={{ 
-            cursor: 'grab',
-            transition: 'opacity 0.2s, box-shadow 0.2s'
-        }}
-    >
-        <Card className="shadow-sm h-100" style={{ borderRadius: '8px' }}>
-            <CardBody className="p-3">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                    <GripVertical className="text-muted drag-handle" style={{ cursor: 'grab' }} aria-label="Arrastrar candidato" />
-                </div>
-                <h6 className="mb-1 candidate-name">{candidate.fullName}</h6>
-                <div className="d-flex align-items-center gap-2">
-                    <Badge bg="primary" className="score-badge">
-                        Score: {(candidate.averageScore ?? 0).toFixed(1)}
-                    </Badge>
-                </div>
-            </CardBody>
-        </Card>
-    </div>
-);
+const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: `candidate-${candidate.applicationId}`,
+        data: { candidate }
+    });
+
+    const style: React.CSSProperties = {
+        cursor: isDragging ? 'grabbing' : 'grab',
+        opacity: isDragging ? 0.5 : 1,
+        ...(transform ? {
+            transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        } : {}),
+        transition: 'opacity 0.2s, box-shadow 0.2s'
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`kanban-candidate-card mb-2 ${isDragging ? 'dragging' : ''}`}
+            style={style}
+            {...listeners}
+            {...attributes}
+        >
+            <Card className="shadow-sm h-100" style={{ borderRadius: '8px' }}>
+                <CardBody className="p-3">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                        <GripVertical className="text-muted drag-handle" style={{ cursor: 'grab' }} aria-label="Arrastrar candidato" />
+                    </div>
+                    <h6 className="mb-1 candidate-name">{candidate.fullName}</h6>
+                    <div className="d-flex align-items-center gap-2">
+                        <Badge bg="primary" className="score-badge">
+                            Score: {candidate.averageScore.toFixed(1)}
+                        </Badge>
+                    </div>
+                </CardBody>
+            </Card>
+        </div>
+    );
+};
 
 const PositionDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    
-    // Validate id format with regex before parsing - reject "123abc" style strings
-    const isValidId = id && /^\d+$/.test(id);
-    const positionId = isValidId ? parseInt(id, 10) : 0;
+    const positionId = parseInt(id || '0', 10);
 
     const [interviewFlow, setInterviewFlow] = useState<InterviewFlowData | null>(null);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeStepId, setActiveStepId] = useState<number | null>(null);
-    const abortControllerRef = useRef<AbortController | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
+            },
         })
     );
 
-const fetchData = useCallback(async () => {
-        if (positionId <= 0) {
-            setError('ID de posición inválido');
-            setLoading(false);
-            return;
-        }
-
-        // Cancel any in-flight request
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-        const { signal } = abortController;
-
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
-            const results = await Promise.allSettled([
+            const [flowData, candidatesData] = await Promise.all([
                 getInterviewFlowByPosition(positionId),
                 getCandidatesByPosition(positionId)
             ]);
-
-            // Check if request was aborted before setting state
-            if (signal.aborted) return;
-
-            const [flowResult, candidatesResult] = results;
-
-            if (flowResult.status === 'fulfilled') {
-                // Cross-validate that fetched data matches requested positionId - HARD ERROR
-                if (flowResult.value.id !== positionId) {
-                    setError('Posición no encontrada');
-                    setInterviewFlow(null);
-                    setCandidates([]);
-                    return;
-                }
-                setInterviewFlow(flowResult.value);
-            } else {
-                console.error('Failed to load interview flow:', flowResult.reason);
-            }
-
-            if (candidatesResult.status === 'fulfilled') {
-                setCandidates(candidatesResult.value);
-            } else {
-                console.error('Failed to load candidates:', candidatesResult.reason);
-            }
-
-            if (signal.aborted) return;
-
-            if (flowResult.status === 'rejected' && candidatesResult.status === 'rejected') {
-                const message = flowResult.reason?.message || candidatesResult.reason?.message || 'Error al cargar los datos de la posición';
-                setError(message);
-            } else if (flowResult.status === 'rejected' || candidatesResult.status === 'rejected') {
-                // Partial data loaded
-                const failed = flowResult.status === 'rejected' ? 'flujo de entrevistas' : 'candidatos';
-                const message = `Advertencia: No se pudo cargar ${failed}. Mostrando datos parciales.`;
-                setError(message);
-            }
+            setInterviewFlow(flowData);
+            setCandidates(candidatesData);
         } catch (err: any) {
-            if (signal.aborted) return;
-            const message = err.message || 'Error al cargar los datos de la posición';
-            setError(message);
+            setError(err.message || 'Error al cargar los datos de la posición');
             console.error(err);
         } finally {
-            if (!signal.aborted) {
-                setLoading(false);
-            }
+            setLoading(false);
         }
     }, [positionId]);
 
     useEffect(() => {
-        if (positionId > 0) {
+        if (positionId) {
             fetchData();
-        } else {
-            setError('ID de posición inválido');
-            setLoading(false);
         }
-        // Cleanup: abort in-flight request on unmount
-        return () => {
-            abortControllerRef.current?.abort();
-        };
     }, [positionId, fetchData]);
 
-    const handleRetry = () => {
-        if (positionId > 0) {
-            fetchData();
-        }
-    };
-
-    const handleDragStart = (event: DragStartEvent) => {
-        // Drag start handler - could be used for visual feedback
+    const handleDragStart = () => {
+        // Drag started - could add visual feedback here
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveStepId(null);
 
-        if (over && active.id !== over.id) {
-            // Parse namespaced IDs: "candidate-{applicationId}" and "step-{stepId}"
-            const activeParts = String(active.id).split('-');
-            const overParts = String(over.id).split('-');
-            
-            if (activeParts[0] !== 'candidate' || overParts[0] !== 'step') {
-                return; // Invalid drag combination
-            }
+        if (!over || active.id === over.id) return;
 
-            const candidateApplicationId = Number(activeParts[1]);
-            const newStepId = Number(overParts[1]);
+        const activeId = String(active.id);
+        const overId = String(over.id);
 
-            const candidate = candidates.find(c => c.applicationId === candidateApplicationId);
-            if (!candidate) return;
+        if (!activeId.startsWith('candidate-') || !overId.startsWith('step-')) return;
 
-            const previousStepId = candidate.currentInterviewStepId;
+        const applicationId = Number(activeId.replace('candidate-', ''));
+        const newStepId = Number(overId.replace('step-', ''));
 
-            try {
-                await updateCandidateStage(candidate.candidateId, candidate.applicationId, newStepId, positionId);
-                
-                // Update optimistically using stepId for reliability
-                setCandidates(prev => prev.map(c => 
-                    c.applicationId === candidateApplicationId 
-                        ? { ...c, currentInterviewStepId: newStepId }
-                        : c
-                ));
-            } catch (err: any) {
-                // Rollback optimistic update on failure
-                setCandidates(prev => prev.map(c => 
-                    c.applicationId === candidateApplicationId 
-                        ? { ...c, currentInterviewStepId: previousStepId }
-                        : c
-                ));
-                setError(err.message || 'Error al mover el candidato');
-                setTimeout(() => setError(null), 5000);
-            }
+        const candidate = candidates.find(c => c.applicationId === applicationId);
+        if (!candidate) return;
+
+        // Check if the candidate is already in this step
+        const currentStepId = interviewFlow?.interviewFlow.interviewSteps.find(
+            s => s.name === candidate.currentInterviewStep
+        )?.id;
+        if (currentStepId === newStepId) return;
+
+        try {
+            await updateCandidateStage(candidate.id, candidate.applicationId, newStepId);
+
+            const newStepName = interviewFlow?.interviewFlow.interviewSteps.find(s => s.id === newStepId)?.name;
+
+            setCandidates(prev => prev.map(c =>
+                c.applicationId === applicationId
+                    ? { ...c, currentInterviewStep: newStepName || c.currentInterviewStep }
+                    : c
+            ));
+        } catch (err: any) {
+            setError(err.message || 'Error al mover el candidato');
+            setTimeout(() => setError(null), 5000);
         }
     };
 
     const handleDragOver = (event: DragOverEvent) => {
         const { over } = event;
         if (over) {
-            const overParts = String(over.id).split('-');
-            if (overParts[0] === 'step') {
-                setActiveStepId(Number(overParts[1]));
+            const overId = String(over.id);
+            if (overId.startsWith('step-')) {
+                setActiveStepId(Number(overId.replace('step-', '')));
             }
         }
     };
 
     const getCandidatesForStep = (stepId: number) => {
         if (!interviewFlow) return [];
-        return candidates.filter(c => c.currentInterviewStepId === stepId);
+        const stepName = interviewFlow.interviewFlow.interviewSteps.find(s => s.id === stepId)?.name;
+        return candidates.filter(c => c.currentInterviewStep === stepName);
     };
 
     // Loading state
@@ -268,10 +242,8 @@ const fetchData = useCallback(async () => {
     if (error && !interviewFlow) {
         return (
             <Container className="mt-5">
-                <Alert variant="danger" dismissible onClose={() => setError(null)}>
-                    {error}
-                </Alert>
-                <Button variant="primary" onClick={handleRetry} className="me-2">
+                <Alert variant="danger">{error}</Alert>
+                <Button variant="primary" onClick={fetchData} className="me-2">
                     Reintentar
                 </Button>
                 <Button variant="secondary" onClick={() => navigate('/positions')}>
@@ -306,19 +278,10 @@ const fetchData = useCallback(async () => {
                     </Link>
                 </Col>
                 <Col xs={12} md={10} className="text-center text-md-end">
-                    <h1 className="h3 mb-0 fw-bold">#{interviewFlow.id} {interviewFlow.title}</h1>
-                    <div className="d-flex flex-wrap justify-content-center justify-content-md-end gap-2 mt-2">
-                        <span className="text-muted small">
-                            {interviewFlow.interviewFlow.interviewSteps.length} fases en el proceso
-                        </span>
-                        <Badge bg={statusBadgeClass[interviewFlow.status]} className="text-white">
-                            {statusLabel[interviewFlow.status]}
-                        </Badge>
-                    </div>
-                    <div className="d-flex flex-wrap justify-content-center justify-content-md-end gap-3 mt-2 text-muted small">
-                        <span><strong>Manager:</strong> {interviewFlow.manager}</span>
-                        <span><strong>Fecha límite:</strong> {formatDate(interviewFlow.deadline)}</span>
-                    </div>
+                    <h1 className="h3 mb-0 fw-bold">{interviewFlow.title}</h1>
+                    <p className="text-muted small mb-0">
+                        {interviewFlow.interviewFlow.interviewSteps.length} fases en el proceso
+                    </p>
                 </Col>
             </Row>
 
