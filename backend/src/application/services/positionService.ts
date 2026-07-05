@@ -9,6 +9,13 @@ const calculateAverageScore = (interviews: any[]) => {
     return totalScore / interviews.length;
 };
 
+/** Derive manager name from company employees: first with role containing 'manager', else first employee, else 'Sin asignar'. */
+const deriveManagerName = (employees: { role: string; name: string }[]): string => {
+    const manager = employees.find(e => e.role.toLowerCase().includes('manager'))
+        || employees[0];
+    return manager ? manager.name : 'Sin asignar';
+};
+
 export const getCandidatesByPositionService = async (positionId: number) => {
     try {
         const applications = await prisma.application.findMany({
@@ -45,14 +52,10 @@ export const getAllPositionsService = async () => {
     });
 
     return positions.map(pos => {
-        // Find a manager from company employees (first employee with role containing 'manager' or first employee)
-        const manager = pos.company.employees.find(e => e.role.toLowerCase().includes('manager')) 
-            || pos.company.employees[0];
-        
         return {
             id: pos.id,
             title: pos.title,
-            manager: manager ? manager.name : 'Sin asignar',
+            manager: deriveManagerName(pos.company.employees),
             deadline: pos.applicationDeadline ? pos.applicationDeadline.toISOString().split('T')[0] : '',
             status: pos.status.toLowerCase() // Normalize to lowercase for frontend consistency
         };
@@ -80,15 +83,11 @@ export const getInterviewFlowByPositionService = async (positionId: number) => {
         throw new Error('Position not found');
     }
 
-    // Find manager from company employees
-    const manager = positionWithInterviewFlow.company.employees.find(e => e.role.toLowerCase().includes('manager')) 
-        || positionWithInterviewFlow.company.employees[0];
-
     // Return format matching frontend's InterviewFlowData interface
     return {
         id: positionWithInterviewFlow.id,
         title: positionWithInterviewFlow.title,
-        manager: manager ? manager.name : 'Sin asignar',
+        manager: deriveManagerName(positionWithInterviewFlow.company.employees),
         deadline: positionWithInterviewFlow.applicationDeadline ? positionWithInterviewFlow.applicationDeadline.toISOString().split('T')[0] : '',
         status: positionWithInterviewFlow.status.toLowerCase(),
         interviewFlow: {

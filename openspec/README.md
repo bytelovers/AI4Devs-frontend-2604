@@ -21,13 +21,13 @@
 
 ### Implementation
 - **Branch**: `feature/frontend-ADLC` (merged from `frontend-iniciales`)
-- **PR**: https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC
+- **PR**: Not submitted (merged directly to `feature/frontend-ADLC`)
 - **Commits**:
   - `dfe3608` - feat: implement position kanban board with drag & drop
   - `f49af7f` - docs: add prompts-ADLC.md with complete ADLC lifecycle
 
 ### Files Delivered
-```
+```text
 frontend/
 ├── src/
 │   ├── components/
@@ -39,10 +39,9 @@ frontend/
 │   └── App.js                      # Modified: new route
 └── package.json                    # Modified: @dnd-kit deps
 
-Documentation/
-├── prompts-iniciales.md            # Exercise + session history
-├── prompts-ADLC.md                 # Full ADLC lifecycle
-└── openspec/
+prompts-iniciales.md                 # Exercise + session history
+prompts-ADLC.md                      # Full ADLC lifecycle
+openspec/
     └── changes/position-kanban-board/
         ├── proposal.md
         ├── spec.md
@@ -52,6 +51,7 @@ Documentation/
 ```
 
 ### Key Metrics
+
 | Metric | Value |
 |--------|-------|
 | Development Time | ~4.9 hours |
@@ -64,7 +64,7 @@ Documentation/
 
 ## OpenSpec Structure
 
-```
+```text
 openspec/
 ├── README.md                    # This file
 ├── index.json                   # Machine-readable catalog
@@ -82,23 +82,21 @@ openspec/
 ## Quick Reference
 
 ### API Endpoints Used
-```
+```text
 GET  /position/:id/interviewflow   → Position name + interview steps
 GET  /position/:id/candidates      → Candidates with current step + score
 PUT  /candidates/:id               → Update candidate stage
 ```
 
 ### Routes Added
-```
+```text
 /positions/:id  → PositionDetail (Kanban Board)
 ```
 
 ### Dependencies Added
 ```json
 {
-  "@dnd-kit/core": "^6.3.1",
-  "@dnd-kit/sortable": "^10.0.0",
-  "@dnd-kit/utilities": "^3.2.2"
+  "@dnd-kit/core": "^6.3.1"
 }
 ```
 

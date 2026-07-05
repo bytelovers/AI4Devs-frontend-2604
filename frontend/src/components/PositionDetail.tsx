@@ -174,10 +174,6 @@ const PositionDetail: React.FC = () => {
         fetchData();
     }, [positionId, fetchData]);
 
-    const handleDragStart = () => {
-        // Drag started - could add visual feedback here
-    };
-
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveStepId(null);
@@ -331,7 +327,6 @@ const PositionDetail: React.FC = () => {
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
             >

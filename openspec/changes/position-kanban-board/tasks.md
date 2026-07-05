@@ -266,7 +266,7 @@
     - `spec.md`
     - `design.md`
     - `tasks.md` (this file)
-    - `archive.md` (pending)
+    - `archive.md`
 - **Result**: Feature branch updated, docs complete, PR available
 
 ---

@@ -30,11 +30,12 @@
                            ┌────────────────────────▼────────────────┐
                            │         PositionDetail (Container)      │
                            │  ┌──────────────────────────────────┐   │
-                           │  │ useEffect → fetchData()            │   │
-                           │  │ Promise.all([                       │   │
-                           │  │   getInterviewFlowByPosition(id),   │   │
-                           │  │   getCandidatesByPosition(id)       │   │
-                           │  │ ])                                 │   │
+                            │  │ useEffect → AbortController       │   │
+                            │  │ fetchData(signal)                   │   │
+                            │  │ Promise.allSettled([                │   │
+                            │  │   getInterviewFlowByPosition(id),   │   │
+                            │  │   getCandidatesByPosition(id)       │   │
+                            │  │ ])                                 │   │
                            │  └────────────────┬──────────────────┘   │
                            └───────────────────│──────────────────────┘
                                                │
@@ -79,6 +80,7 @@ User Action                    System Response
    │
    ▼
 2. PositionDetail mounts
+   │   AbortController created (cleaned up on unmount)
    │
    ├──→ getInterviewFlowByPosition(1) ──────→ API: GET /position/1/interviewflow
    │                                              │
@@ -86,24 +88,30 @@ User Action                    System Response
           │                                           │
           └──────────────┬────────────────────────────┘
                          ▼
-3. State updated: interviewFlow + candidates
+3. Promise.allSettled resolves:
+   - fulfilled → state updated: interviewFlow + candidates
+   - rejected  → partial warning + settled data used if available
    │
    ▼
 4. Render: Header + KanbanBoard with columns
    │
    ▼
-5. User drags CandidateCard (id=4) from Column A to Column B
+5. User drags CandidateCard (id=`candidate-4`) from Column A to Column B
    │
    ▼
 6. onDragEnd fires:
-   - active.id = 4 (applicationId)
-   - over.id = 2 (target stepId)
+   - active.id = `candidate-4` (namespaced applicationId)
+   - over.id = `step-2` (namespaced target stepId)
    │
    ▼
-7. find candidate with applicationId=4
+7. parse: applicationId = Number(active.id.replace('candidate-', ''))
+   newStepId = Number(over.id.replace('step-', ''))
    │
    ▼
-8. updateCandidateStage(candidateId, applicationId, newStepId=2)
+8. find candidate with parsed applicationId
+   │
+   ▼
+9. updateCandidateStage(candidate.id, candidate.applicationId, newStepId)
    │
    ├──→ API: PUT /candidates/:candidateId { applicationId, currentInterviewStep: 2 }
    │
@@ -142,7 +150,9 @@ interface State {
 **Effects**:
 ```typescript
 useEffect(() => {
-  fetchData(); // Parallel fetch on mount + positionId change
+  const abortController = new AbortController();
+  fetchData(abortController.signal);
+  return () => abortController.abort(); // Cleanup on unmount
 }, [positionId, fetchData]);
 ```
 
@@ -271,20 +281,31 @@ const handleDragEnd = async (event: DragEndEvent) => {
   // No drop target or same target
   if (!over || active.id === over.id) return;
 
-  const candidateId = Number(active.id);      // applicationId
-  const targetStepId = Number(over.id);       // stepId (column)
+  const activeId = String(active.id);
+  const overId = String(over.id);
+
+  // Validate namespaced IDs
+  if (!activeId.startsWith('candidate-') || !overId.startsWith('step-')) return;
+
+  const applicationId = Number(activeId.replace('candidate-', ''));
+  const targetStepId = Number(overId.replace('step-', ''));
 
   // Find candidate by applicationId
-  const candidate = candidates.find(c => c.applicationId === candidateId);
+  const candidate = candidates.find(c => c.applicationId === applicationId);
   if (!candidate) return;
+
+  // Check if candidate is already in this step
+  const currentStepId = interviewFlow?.interviewFlow.interviewSteps
+    .find(s => s.name.trim().toLowerCase() === (candidate.currentInterviewStep?.trim().toLowerCase() ?? ''))?.id;
+  if (currentStepId === targetStepId) return;
 
   // Optimistic update
   const newStepName = interviewFlow?.interviewFlow.interviewSteps
     .find(s => s.id === targetStepId)?.name;
 
   setCandidates(prev => prev.map(c =>
-    c.applicationId === candidateId
-      ? { ...c, currentInterviewStep: newStepName }
+    c.applicationId === applicationId
+      ? { ...c, currentInterviewStep: newStepName || c.currentInterviewStep }
       : c
   ));
 
@@ -294,7 +315,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
   } catch (err) {
     // Rollback on error
     setCandidates(prev => prev.map(c =>
-      c.applicationId === candidateId
+      c.applicationId === applicationId
         ? { ...c, currentInterviewStep: candidate.currentInterviewStep }
         : c
     ));
@@ -525,20 +546,19 @@ catch (err: any) {
 
 ### Optimizations Applied
 
-1. **Parallel Fetching**: `Promise.all([getFlow(), getCandidates()])`
-2. **Optimistic Updates**: Immediate UI feedback, no waiting for API
-3. **Memoization**: `useCallback` for fetchData, `React.memo` for presentational components
-4. **CSS Containment**: `contain: layout paint` on columns
-5. **Virtual Scroll Ready**: Drop zone uses native scroll (can swap to react-window)
+1. **Settled Fetching**: `Promise.allSettled([getFlow(), getCandidates()])` — partial failures show warnings without blocking the other response
+2. **AbortController**: In-flight requests cancelled on unmount to prevent state updates after unmount
+3. **Optimistic Updates**: Immediate UI feedback, no waiting for API
+4. **Memoization**: `useCallback` for fetchData, `React.memo` for presentational components
+5. **CSS Containment**: `contain: layout paint` on columns
+6. **Virtual Scroll Ready**: Drop zone uses native scroll (can swap to react-window)
 
 ### Bundle Impact
 
 | Dependency | Size (gzipped) |
 |------------|----------------|
 | @dnd-kit/core | ~4.2 KB |
-| @dnd-kit/sortable | ~3.8 KB |
-| @dnd-kit/utilities | ~1.5 KB |
-| **Total added** | **~9.5 KB** |
+| **Total added** | **~4.2 KB** |
 
 ---
 

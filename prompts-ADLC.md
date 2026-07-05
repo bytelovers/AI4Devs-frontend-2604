@@ -203,7 +203,7 @@ dfe3608 feat: implement position kanban board with drag & drop
 | `frontend/src/components/Positions.tsx` | +id en mockPositions, Link a detalle |
 | `frontend/src/App.js` | +Route /positions/:id |
 | `frontend/src/App.css` | +Estilos base (preexistente) |
-| `frontend/package.json` | +@dnd-kit/core, sortable, utilities |
+| `frontend/package.json` | +@dnd-kit/core |
 
 ### Problemas Técnicos Resueltos
 
@@ -260,7 +260,7 @@ curl -X PUT http://localhost:3010/candidates/1 \
 ### Entregables Generados
 
 1. **Código fuente** → Rama `feature/frontend-ADLC` en GitHub
-2. **PR creado** → https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC
+2. **PR**: No submitted (merged directly a `feature/frontend-ADLC`)
 3. **Documentación** → `prompts-iniciales.md` + `prompts-ADLC.md` (este archivo)
 
 ### Checklist de Entrega
@@ -307,7 +307,7 @@ curl -X PUT http://localhost:3010/candidates/1 \
 | Líneas de código nuevas | ~473 (TSX + CSS + TS) |
 | Archivos creados | 4 |
 | Archivos modificados | 4 |
-| Dependencias añadidas | 3 (@dnd-kit/*) |
+| Dependencias añadidas | 1 (@dnd-kit/core) |
 | Tiempo total desarrollo | ~4 horas |
 | Commits | 1 principal + 1 merge |
 | Build size (gzipped) | +~36 KB CSS, +~184 KB JS |
@@ -317,7 +317,7 @@ curl -X PUT http://localhost:3010/candidates/1 \
 ## Referencias
 
 - **Repositorio**: https://github.com/bytelovers/AI4Devs-frontend-2604
-- **PR**: https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC
+- **PR**: Not submitted (merged to `feature/frontend-ADLC`)
 - **Rama feature**: `feature/frontend-ADLC`
 - **Rama entrega**: `frontend-iniciales` (merged)
 - **Documentación complementaria**: `prompts-iniciales.md`

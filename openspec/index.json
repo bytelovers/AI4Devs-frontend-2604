@@ -15,7 +15,7 @@
       "created": "2025-07-02",
       "completed": "2026-07-03",
       "branch": "feature/frontend-ADLC",
-      "pr": "https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC",
+      "pr": "Not submitted (merged directly to feature/frontend-ADLC)",
       "commits": [
         "dfe3608 feat: implement position kanban board with drag & drop",
         "ba35eeb feat(api): add shared position types, API service, and formatDate utility",
@@ -76,9 +76,7 @@
         "/positions/:id"
       ],
       "dependenciesAdded": [
-        "@dnd-kit/core@^6.3.1",
-        "@dnd-kit/sortable@^10.0.0",
-        "@dnd-kit/utilities@^3.2.2"
+        "@dnd-kit/core@^6.3.1"
       ],
       "testing": {
         "manual": "passed",
