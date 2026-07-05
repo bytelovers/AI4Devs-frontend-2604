@@ -5,7 +5,7 @@
 - **Status**: `completed`
 - **Completed**: 2025-07-02
 - **Merged To**: `feature/frontend-ADLC`
-- **PR**: https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC
+- **PR**: No submitted (merged directly to `feature/frontend-ADLC`)
 
 ---
 
@@ -112,7 +112,7 @@ dfe3608 feat: implement position kanban board with drag & drop
 ### Push Status
 - ✅ `frontend-iniciales` pushed to origin
 - ✅ `feature/frontend-ADLC` pushed to origin
-- ✅ PR available: https://github.com/bytelovers/AI4Devs-frontend-2604/pull/new/feature/frontend-ADLC
+- ✅ PR: Not submitted (merged directly to `feature/frontend-ADLC`)
 
 ---
 

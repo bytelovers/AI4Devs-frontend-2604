@@ -22,7 +22,7 @@ describe('getCandidatesByPositionService', () => {
         applicationDate: new Date(),
         currentInterviewStep: 1,
         notes: null,
-        candidate: { firstName: 'John', lastName: 'Doe' },
+        candidate: { id: 1, firstName: 'John', lastName: 'Doe' },
         interviewStep: { name: 'Technical Interview' },
         interviews: [{ score: 5 }, { score: 3 }],
       },
@@ -36,6 +36,8 @@ describe('getCandidatesByPositionService', () => {
         fullName: 'John Doe',
         currentInterviewStep: 'Technical Interview',
         averageScore: 4,
+        id: 1,
+        applicationId: 1,
       },
     ]);
   });

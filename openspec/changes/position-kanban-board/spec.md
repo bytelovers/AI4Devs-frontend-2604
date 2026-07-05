@@ -67,14 +67,14 @@ Returns position details and flow.
 Returns candidates for a position.
 ```json
 [
-  { "candidateId": 1, "applicationId": 1, "positionId": 1, "fullName": "John Doe", "currentInterviewStepId": 1, "averageScore": 5 }
+  { "fullName": "John Doe", "currentInterviewStep": "Initial Screening", "averageScore": 5, "id": 1, "applicationId": 1 }
 ]
 ```
 
 ### PUT /candidates/:id
 Updates candidate stage.
 ```json
-{ "applicationId": 1, "currentInterviewStep": 2, "positionId": 1 }
+{ "applicationId": 1, "currentInterviewStep": 2 }
 ```
 
 ---
@@ -94,11 +94,10 @@ export interface PositionListItem {
 
 export interface Candidate {
     fullName: string;
-    currentInterviewStepId: number;
+    currentInterviewStep: string;
     averageScore: number;
-    candidateId: number;
+    id: number;
     applicationId: number;
-    positionId: number;
 }
 
 export interface InterviewFlowData {

@@ -3,7 +3,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import candidateRoutes from './routes/candidateRoutes';
-import positionRoutes from './routes/positionRoutes';
+import { getAllPositions, getCandidatesByPosition, getInterviewFlowByPosition } from './presentation/controllers/positionController';
 import { uploadFile } from './application/services/fileUploadService';
 import cors from 'cors';
 
@@ -43,11 +43,12 @@ app.use('/candidates', candidateRoutes);
 // Route for file uploads
 app.post('/upload', uploadFile);
 
-// Route to get candidates by position (singular)
-app.use('/position', positionRoutes);
-
 // Route to get all positions (plural) - for the Positions list page
-app.use('/positions', positionRoutes);
+app.get('/positions', getAllPositions);
+
+// Route to get candidates and interview flow by position (singular)
+app.get('/position/:id/candidates', getCandidatesByPosition);
+app.get('/position/:id/interviewflow', getInterviewFlowByPosition);
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
